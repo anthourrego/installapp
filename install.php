@@ -75,7 +75,7 @@
     <div id="contenido-software" style="display: none;">
       <div class="text-right">
         <!-- Botón Modal Agregar Aplicación   -->
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalAgregarSoftware">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalCrearSoftware">
           <i class="fas fa-plus"></i> Agregar Software
         </button>
       </div>
@@ -383,6 +383,69 @@
           </div>
           <div class="modal-footer justify-content-center">
             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Actualizar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Crear Software -->
+  <div class="modal fade bd-example-modal-lg" id="modalCrearSoftware" tabindex="-1" role="dialog" aria-labelledby="modalAgregarAplicacionTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" >Agregar Aplicación</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form id="formAgregarSoftware" method="post" autocomplete="off" enctype="multipart/form-data" action="acciones.php">
+          <input type="hidden" name="accion" value="formAgregarSoftware">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="nombreSoftware">Nombre <span class="text-danger">*</span></label>
+                <input name="nombreSoftware" type="text" class="form-control" id="nombreSoftware" required>
+              </div>
+              <div class="col-6">
+                <label>Logo <span class="text-danger">*</span></label>
+                <div class="custom-file">
+                  <input required type="file" class="custom-file-input" id="imgSoftware" name="imgSoftware" accept=".jpg, .jpeg, .png" required>
+                  <label class="custom-file-label" id="labelimgSoftware" for="archivo">Seleccionar Archivo</label>
+                  <small class="form-text text-muted">
+                    Solo se permiten archivos jpg, jpeg, png.
+                  </small>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="col-12">
+                <label for="ruta_software">Ruta <span class="text-danger">*</span></label>
+                <input class="form-control" id="ruta_software" name="ruta_software" type="text">
+              </div>
+            </div>
+            <div class="form-group mt-2">
+                <label for="descripcionApp">Descripción</label>
+                <textarea name="descripcionApp" class="form-control" id="descripcionApp" rows="3" required></textarea>
+            </div>
+            <hr>
+            <p class="text-left">Países</p>
+            <div class="funkyradio form-row" id="inputRadioPaisSoftware"></div>
+            <hr>
+            <p class="text-left">Referencias</p>
+            <div class="row">
+              <div class="col-12">
+                <input autofocus type="search" name="input-searchSoft" class="form-control" id="input-searchSoft" placeholder="Buscar referencias">
+                <br>
+              </div>
+            </div>
+            <div class="funkyradio form-row searchable-containerSoft" id="inputRadioAppSoftware"></div>
+          </div>
+          <div class="progress mt-2" style="height: 25px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"><div class="percent">0%</div></div>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Crear</button>
           </div>
         </form>
       </div>
@@ -985,7 +1048,6 @@
       cache: false,
       data: {accion: "listaApps"},
       success: function(data){
-        console.log(data);
         $('[data-toggle="tooltip"]').tooltip('hide');
         //Destruimos la tabla y la limpiamos
         $("#tabla-aplicaciones").dataTable().fnDestroy();
@@ -1029,6 +1091,13 @@
               <label for='${data[i].p_nombre}'>${data[i].p_nombre}</label>
             </div>
           `);
+
+          $("#inputRadioPaisSoftware").append(`
+            <div class='funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+              <input class='plataforma' type='checkbox' name='paisSoftware[]' id="${data[i].p_nombre}Soft" value='${data[i].p_id}'/>
+              <label for='${data[i].p_nombre}Soft'>${data[i].p_nombre}</label>
+            </div>
+          `);
         }
       },
       error: function(){
@@ -1051,6 +1120,13 @@
             <div class='items funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
               <input class='plataforma' type='checkbox' name='ref[]' id="${data[i].ref_nombre}" value='${data[i].ref_id}'/>
               <label for='${data[i].ref_nombre}'>${data[i].ref_nombre}</label>
+            </div>
+          `);
+
+          $("#inputRadioAppSoftware").append(`
+            <div class='itemsSoft funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+              <input class='plataforma' type='checkbox' name='refSoft[]' id="${data[i].ref_nombre}Soft" value='${data[i].ref_id}'/>
+              <label for='${data[i].ref_nombre}Soft'>${data[i].ref_nombre}</label>
             </div>
           `);
         }
