@@ -58,7 +58,7 @@
         </button>
       </div>
       <hr>
-      <table class="table table-hover table-sm" id="tabla-aplicaciones">
+      <table class="table table-hover" id="tabla-aplicaciones">
         <thead>
           <th>Imagen</th>
           <th>Nombre</th>
@@ -789,8 +789,6 @@
       if ($("#formModificarAplicacion").valid()) {
         $("#formModificarAplicacion").ajaxSubmit({
           //dataType: "json",
-          clearForm: true,
-          resetForm: true,
           beforeSend: function() {
             status.empty();
             var percentVal = '0%';
@@ -808,50 +806,20 @@
             percent.html(percentVal);
           },
           complete: function(xhr) {
-            console.log(xhr.responseText)
-            /*switch (xhr.responseJSON) {
-              case 1:  
-                listaApps();
-                $("#modalCrearApps").modal("hide");
-                alertify.success("Se han agregado correctamente");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-              case 2:
-                alertify.error("EL nombre de la aplicación ya esta en uso");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-              
-              case 3:
-                alertify.error("El tipo de imagen no el permitido");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-
-              case 4:
-                alertify.error("Error al subir la imagen");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-
-              case 5:
-                alertify.error("Error al subir el apk");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-
-              case 6:
-                alertify.error("Error al crear la apliación");
-                bar.width('0%');
-                percent.html('0%');
-                break;
-              default:
-                alertify.error(xhr.responseText);
-                bar.width('0%');
-                percent.html('0%');
-                break;
-            }*/
+            console.log(xhr);
+            if (xhr.responseText == 1) {
+              listaApps();
+              $("#modalModificarAplicacion").modal("hide");
+              $("#formModificarAplicacion")[0].reset();
+              alertify.success("Se han modificado correctamente");
+              bar.width('0%');
+              percent.html('0%');
+            }else{
+              //Remplazamos la comillas devueltas por el json
+              alertify.error(xhr.responseText.replace(/"/g, ''));
+              bar.width('0%');
+              percent.html('0%');
+            }
           }
         });  
       }
@@ -1017,6 +985,7 @@
       cache: false,
       data: {accion: "listaApps"},
       success: function(data){
+        console.log(data);
         $('[data-toggle="tooltip"]').tooltip('hide');
         //Destruimos la tabla y la limpiamos
         $("#tabla-aplicaciones").dataTable().fnDestroy();
@@ -1117,15 +1086,15 @@
     $.ajax({
       url: "acciones",
       type: "POST",
-      dataType: "json",
+      dataType:"json", 
       cache: false,
       data: {accion: "datosApp", idApp: app_id},
       success: function(data){
         $('#idAppMod').val(data.app_id);
         $('#imgAppModAnt').val(data.app_imagen);
         $('#rutaApp').val(data.app_ruta);
-        $('#nombreAppMod').val(data.app_nombre);
-        $('#descripcionAppMod').val(data.app_descripcion);
+        $('#nombreAppMod').val(acutes(data.app_nombre));
+        $('#descripcionAppMod').val(acutes(data.app_descripcion));
         $('#nombreAppAnt').val(data.app_nombre);
         $("#modalModificarAplicacion").modal("show");
 

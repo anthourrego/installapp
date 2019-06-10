@@ -342,136 +342,200 @@
     $db->conectar();
     $resp = 1;
 
-    //Sube imagen y apk
-    if (@$_FILES['imgAppMod'] && @$_FILES['apkAppMod']) {
-      if ($_FILES['imgAppMod']['type'] == "image/jpeg" || $_FILES['imgAppMod']['type'] == "image/jpg" || $_FILES['imgAppMod']['type'] == "image/png") {
-        
+    $nombreSinEspacios = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreAppMod']));
+    $nombreSinEspaciosAnt = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreAppAnt'])); 
+
+    //Validamos si el nombre del apk ya se encuentra registrado para no remplazarlo
+    $validarNombreApk = $db->consulta("SELECT * FROM apps WHERE app_id <> :app_id AND app_nombre = :app_nombre", array(":app_id" => $_REQUEST['idAppMod'], ":app_nombre" => $_REQUEST['nombreAppMod']));
+    
+    if ($validarNombreApk['cantidad_registros'] == 0) {
+      //Sube imagen y apk
+      if (@$_FILES['imgAppMod'] && @$_FILES['apkAppMod']) {
         //Obtenemos la extension del archivo para agregarla al a final
         $info = new SplFileInfo($_FILES['imgAppMod']['name']);
         $extensionImg = $info->getExtension();
-
-        $nombreSinEspacios = str_replace(" ", "_", quitarAcentos($_POST['nombreAppMod']));
-
-        $directorio = "../_upload/apps/" . $_POST['nombreAppMod'];
-
-        //Validamos si la ruta de destino existe, en caso de no existir la creamos
-        if(!file_exists($directorio)){
-          // Para crear una estructura anidada se debe especificar
-          unlink(".." . $_POST['imgAppModAnt']);
-          unlink(".." . $_POST['apkAppModAnt']);
-          rename("..". $_POST['rutaApp'], $directorio);
-          /*if(!mkdir($directorio, 0777, true)) {
-            die('Fallo al crear las carpetas...');
-          }*/
-        }
-
-        //Abrimos el directorio de destino
-        $dir=opendir($directorio);
-        //Indicamos la ruta de destino, así como el nombre del archivo
-        $target_pathImg = $directorio.'/' . $_POST['nombreAppMod'] . "." . $extensionImg;
-        $target_pathApk = $directorio.'/' . $_POST['nombreAppMod'] . ".apk";
-
-
-        //Movemos y validamos que el archivo se haya cargado correctamente
-        //El primer campo es el origen y el segundo el destino
-        if(move_uploaded_file($_FILES['imgAppMod']['tmp_name'], $target_pathImg) && move_uploaded_file($_FILES['apkAppMod']['tmp_name'], $target_pathApk)) {
-          $app->setId($_POST['idAppMod']);
-          $app->setNombre($_POST['nombreAppMod']);
-          $app->setDescripcion($_POST['descripcionAppMod']);
-          $app->setRuta(substr($directorio, 2));
-          $app->setApk(substr($target_pathApk, 2));
-          $app->setImagen(substr($target_pathImg, 2));
-          $app->setFechaCreacion(date('Y-m-d H:i:m'));
-          if($app_manejo->modificarApp($app) == 1){
-            if (isset($_POST['refMod'])) {
-              $app_manejo->borrarAppUReferencia($_POST['idAppMod']);
-              foreach ($_POST['refMod'] as $ref) {
-                $app_manejo->crearAppUReferencia($_POST['idAppMod'], $ref);
-              }
-            }
-            echo "OK";
-          }else{
-            echo "Error al Modificar 1";
+  
+        if ($_FILES['imgAppMod']['type'] == "image/jpeg" || $_FILES['imgAppMod']['type'] == "image/jpg" || $_FILES['imgAppMod']['type'] == "image/png") {
+          
+          $directorio = "apps/" . $nombreSinEspacios;
+  
+          //Validamos si la ruta de destino existe, en caso de no existir la creamos
+          if(!file_exists("almacenamiento/" . $directorio)){
+            //Eliminamos el apk y la imagen 
+            unlink("almacenamiento/" . $_POST['imgAppModAnt']);
+            unlink("almacenamiento/" . $_POST['apkAppModAnt']);
+            //Renombramos la carpeta
+            rename("almacenamiento/apps/". $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
           }
-        } else {
-          echo "Ha ocurrido un error al subir, por favor inténtelo de nuevo";
+  
+          //Abrimos el directorio de destino
+          $dir=opendir("almacenamiento/" . $directorio);
+          //Indicamos la ruta de destino, así como el nombre del archivo
+          $target_pathImg = $directorio.'/' . $nombreSinEspacios . "." . $extensionImg;
+          $target_pathApk = $directorio.'/' . $nombreSinEspacios . ".apk";
+  
+  
+          //Movemos y validamos que el archivo se haya cargado correctamente
+          //El primer campo es el origen y el segundo el destino
+          if(move_uploaded_file($_FILES['imgAppMod']['tmp_name'], "almacenamiento/" . $target_pathImg) && move_uploaded_file($_FILES['apkAppMod']['tmp_name'], "almacenamiento/" . $target_pathApk)) {
+            $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+                      array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreAppMod']),
+                            ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionAppMod']),
+                            ":app_ruta" => $target_pathApk,
+                            ":app_imagen" => $target_pathImg,
+                            ":app_id" => $_REQUEST['idAppMod']
+                    ));
+          }else{
+            echo "Ha ocurrido un error al subir los archivos, por favor inténtelo de nuevo";
+          }
+          closedir($dir); //Cerramos el directorio de destino
+        }else{
+          echo "Error tipo de archivo";
         }
-        closedir($dir); //Cerramos el directorio de destino
-      }else{
-        echo "Error tipo de archivo";
-      }
-
-
-    //Si solo sube la imagenes
-    }else if(@$_FILES['imgAppMod']){
-      $resp = "Solo se adjunto la imagen";
-    //Si solo sube apk
-    }elseif (@$_FILES['apkAppMod']){
-      $resp = "Solo se adjuntos el apk";
-    //Si solo actualizar datos
-    }else{
-      //Traemos la extension de la imagen
-      $extensionImg = explode(".", $_REQUEST['imgAppModAnt']);
-
-      $directorio = "apps/" . $nombreSinEspacios;
-      $directorioImg = $directorio . "/" . $nombreSinEspacios . "." . $extensionImg[1]; 
-      $directorioApk = $directorio . "/" . $nombreSinEspacios . ".apk";
-      //Validamos si el directorio existe, si no existe los remplazamos 
-      if(!file_exists("almacenamiento" . $directorio)){
-        //Se renombre las carpeta y los nombre de la app   
-        rename("almacenamiento/". $_POST['rutaApp'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
-        rename("almacenamiento/". $_POST['imgAppModAnt'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . "." . $extensionImg[1]);
-        rename("almacenamiento/apps/". $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
-      }
-
-      $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+  
+      //Si solo sube la imagenes
+      }else if(@$_FILES['imgAppMod']){
+        //Obtenemos la extension del archivo para agregarla al a final
+        $info = new SplFileInfo($_FILES['imgAppMod']['name']);
+        $extensionImg = $info->getExtension();
+  
+        if ($_FILES['imgAppMod']['type'] == "image/jpeg" || $_FILES['imgAppMod']['type'] == "image/jpg" || $_FILES['imgAppMod']['type'] == "image/png") {
+          $directorio = "apps/" . $nombreSinEspacios;
+          $directorioApk = $directorio . "/" . $nombreSinEspacios . ".apk";
+          unlink("almacenamiento/" . $_POST['imgAppModAnt']); //Eliminamos la imagen de server
+          //Validamos si la ruta de destino existe, en caso de no existir la creamos
+          if(!file_exists("almacenamiento/" . $directorio)){
+            // Para crear una estructura anidada se debe especificar
+            rename("almacenamiento/" . $_POST['rutaApp'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
+            rename("almacenamiento/apps/" . $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
+          }
+  
+          //Abrimos el directorio de destino
+          $dir=opendir("almacenamiento/" . $directorio);
+          //Indicamos la ruta de destino, así como el nombre del archivo
+          $target_pathImg = $directorio . '/' . $nombreSinEspacios . "." . $extensionImg;
+  
+          //Movemos y validamos que el archivo se haya cargado correctamente
+          //El primer campo es el origen y el segundo el destino
+          if(move_uploaded_file($_FILES['imgAppMod']['tmp_name'], "almacenamiento/" . $target_pathImg)) {
+            $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
                       array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreAppMod']),
                             ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionAppMod']),
                             ":app_ruta" => $directorioApk,
+                            ":app_imagen" => $target_pathImg,
+                            ":app_id" => $_REQUEST['idAppMod']
+                    ));
+          } else {
+            echo "Ha ocurrido un error al subir la imagen, por favor inténtelo de nuevo";
+          }
+          closedir($dir); //Cerramos el directorio de destino
+        }else{
+          echo "Error tipo de imagen";
+        }
+      
+      }elseif (@$_FILES['apkAppMod']){
+        //Obtenemos la extension del archivo para agregarla al a final
+        $extensionImg = explode(".", $_REQUEST['imgAppModAnt']);
+
+        $directorio = "apps/" . $nombreSinEspacios;
+        $directorioImg = $directorio . "/" . $nombreSinEspacios . "." . $extensionImg[1];
+        unlink("almacenamiento/" . $_POST['rutaApp']); //Eliminamos el apk del server
+        //Validamos si la ruta de destino existe, en caso de no existir la creamos
+        if(!file_exists($directorio)){
+          // Para crear una estructura anidada se debe especificar
+          rename("almacenamiento/". $_POST['imgAppModAnt'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . "." . $extensionImg[1]);
+          rename("almacenamiento/apps/". $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
+        }
+
+        //Abrimos el directorio de destino
+        $dir=opendir("almacenamiento/" . $directorio);
+        //Indicamos la ruta de destino, así como el nombre del archivo
+        $target_pathApk = $directorio .'/' . $nombreSinEspacios . ".apk";
+
+        //Movemos y validamos que el archivo se haya cargado correctamente
+        //El primer campo es el origen y el segundo el destino
+        if(move_uploaded_file($_FILES['apkAppMod']['tmp_name'], "almacenamiento/" . $target_pathApk)) {
+          $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+                      array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreAppMod']),
+                            ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionAppMod']),
+                            ":app_ruta" => $target_pathApk,
                             ":app_imagen" => $directorioImg,
                             ":app_id" => $_REQUEST['idAppMod']
                     ));
-    }
-
-    //Deshabilitamos todos los paises con el id de la app
-    $db->sentencia("UPDATE apps_paises SET ap_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idAppMod']));  
-
-    //Validamos si etsa seleccionar algunos paises
-    if (@$_REQUEST['paisEdit']) {
-      foreach (@$_REQUEST['paisEdit'] as $pais) {
-        $validar = $db->consulta("SELECT ap_id FROM apps_paises WHERE fk_p = :fk_p AND fk_app = :fk_app", array(":fk_p" => $pais, "fk_app" => $_REQUEST['idAppMod']));
-        //Si hay coincidencia se cambia el estado si no se agrega el registro 
-        if ($validar['cantidad_registros'] == 1) {
-          $db->sentencia("UPDATE apps_paises SET ap_activo = 1 WHERE ap_id = :ap_id", array(":ap_id" => $validar[0]['ap_id']));
-        }else{
-          $db->sentencia("INSERT INTO apps_paises(fk_p, fk_app, ap_fecha_creacion, ap_activo) VALUES(:fk_p, :fk_app, :ap_fecha_creacion, 1)",
-                        array(":fk_p" => $pais, 
-                              ":fk_app" => $_REQUEST['idAppMod'], 
-                              ":ap_fecha_creacion" => date("Y-m-d H:i:s")
-                        ));
-        } 
-      }
-    }
-
-    //Cambiamos a 0 todas la refencias
-    $db->sentencia("UPDATE apps_referencias SET ar_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idAppMod']));
-
-    //Validamos si selecionaron alguna referencia
-    if (@$_REQUEST['refEdit']) {
-      foreach ($_REQUEST['refEdit'] as $ref) {
-        $validar = $db->consulta("SELECT ar_id FROM apps_referencias WHERE fk_ref = :fk_ref AND fk_app = :fk_app", array(":fk_ref" => $ref, ":fk_app" => $_REQUEST['idAppMod']));
-        
-        if ($validar['cantidad_registros'] == 1) {
-          $db->sentencia("UPDATE apps_referencias SET ar_activo = 1 WHERE ar_id = :ar_id", array(":ar_id" => $validar[0]['ar_id']));
-        }else{
-          $db->sentencia("INSERT INTO apps_referencias(fk_ref, fk_app, ar_fecha_creacion, ar_activo) VALUES(:fk_ref, :fk_app, :ar_fecha_creacion, 1)", 
-                        array(":fk_ref" => $ref, 
-                              ":fk_app" => $_REQUEST['idAppMod'], 
-                              ":ar_fecha_creacion" => date("Y-m-d H:i:s")
-                        ));
+        } else {
+          echo "Ha ocurrido un error al subir el apk, por favor inténtelo de nuevo";
         }
-
+        closedir($dir); //Cerramos el directorio de destino
+        //Si solo actualizar datos
+      }else{
+        //Traemos la extension de la imagen
+        $extensionImg = explode(".", $_REQUEST['imgAppModAnt']);
+  
+        $directorio = "apps/" . $nombreSinEspacios;
+        $directorioImg = $directorio . "/" . $nombreSinEspacios . "." . $extensionImg[1]; 
+        $directorioApk = $directorio . "/" . $nombreSinEspacios . ".apk";
+        //Validamos si el directorio existe, si no existe los remplazamos 
+        if(!file_exists("almacenamiento/" . $directorio)){
+          //Se renombre las carpeta y los nombre de la app   
+          rename("almacenamiento/". $_POST['rutaApp'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
+          rename("almacenamiento/". $_POST['imgAppModAnt'], "almacenamiento/apps/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . "." . $extensionImg[1]);
+          rename("almacenamiento/apps/". $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
+        }
+  
+        $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+                        array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreAppMod']),
+                              ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionAppMod']),
+                              ":app_ruta" => $directorioApk,
+                              ":app_imagen" => $directorioImg,
+                              ":app_id" => $_REQUEST['idAppMod']
+                      ));
       }
+  
+      //Validamos si la respuesta a cambiado, si cambia no aplicamos cambios a lo checkbox
+      if ($resp == 1) {
+        //Deshabilitamos todos los paises con el id de la app
+        $db->sentencia("UPDATE apps_paises SET ap_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idAppMod']));  
+    
+        //Validamos si etsa seleccionar algunos paises
+        if (@$_REQUEST['paisEdit']) {
+          foreach (@$_REQUEST['paisEdit'] as $pais) {
+            $validar = $db->consulta("SELECT ap_id FROM apps_paises WHERE fk_p = :fk_p AND fk_app = :fk_app", array(":fk_p" => $pais, "fk_app" => $_REQUEST['idAppMod']));
+            //Si hay coincidencia se cambia el estado si no se agrega el registro 
+            if ($validar['cantidad_registros'] == 1) {
+              $db->sentencia("UPDATE apps_paises SET ap_activo = 1 WHERE ap_id = :ap_id", array(":ap_id" => $validar[0]['ap_id']));
+            }else{
+              $db->sentencia("INSERT INTO apps_paises(fk_p, fk_app, ap_fecha_creacion, ap_activo) VALUES(:fk_p, :fk_app, :ap_fecha_creacion, 1)",
+                            array(":fk_p" => $pais, 
+                                  ":fk_app" => $_REQUEST['idAppMod'], 
+                                  ":ap_fecha_creacion" => date("Y-m-d H:i:s")
+                            ));
+            } 
+          }
+        }
+    
+        //Cambiamos a 0 todas la refencias
+        $db->sentencia("UPDATE apps_referencias SET ar_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idAppMod']));
+    
+        //Validamos si selecionaron alguna referencia
+        if (@$_REQUEST['refEdit']) {
+          foreach ($_REQUEST['refEdit'] as $ref) {
+            $validar = $db->consulta("SELECT ar_id FROM apps_referencias WHERE fk_ref = :fk_ref AND fk_app = :fk_app", array(":fk_ref" => $ref, ":fk_app" => $_REQUEST['idAppMod']));
+            
+            if ($validar['cantidad_registros'] == 1) {
+              $db->sentencia("UPDATE apps_referencias SET ar_activo = 1 WHERE ar_id = :ar_id", array(":ar_id" => $validar[0]['ar_id']));
+            }else{
+              $db->sentencia("INSERT INTO apps_referencias(fk_ref, fk_app, ar_fecha_creacion, ar_activo) VALUES(:fk_ref, :fk_app, :ar_fecha_creacion, 1)", 
+                            array(":fk_ref" => $ref, 
+                                  ":fk_app" => $_REQUEST['idAppMod'], 
+                                  ":ar_fecha_creacion" => date("Y-m-d H:i:s")
+                            ));
+            }
+    
+          }
+        }
+      }
+    }else{
+      $resp = "Este nombre ya se encuentra en uso.";
     }
 
     $db->desconectar();

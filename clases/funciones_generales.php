@@ -84,7 +84,7 @@
       
     return($cadena);    
   }
-
+  
   function fecha_db_obtener($fecha,$formato='Y-m-d'){
     $fecha_retornar='';
     switch (BDTYPE) {
@@ -120,6 +120,5 @@
     $cadena = strtolower($cadena);
     return utf8_encode($cadena);
     }
-
 
 ?>
