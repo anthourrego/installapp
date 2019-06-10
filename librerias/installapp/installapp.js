@@ -40,3 +40,10 @@ function definirdataTable(nombreDataTable) {
     "processing": true
   });
 }
+
+function acutes(cadena) {
+
+  var resp = cadena.replace(/&aacute;/g, "á").replace(/&eacute;/g, "é").replace(/&iacute;/g, "í").replace(/&oacute;/g, "ó").replace(/&uactue;/g, "ú").replace(/&Aacute;/g, "Á").replace(/&Eacute;/g, "É").replace(/&Iacute;/g, "Í").replace(/&Oacute;/g, "Ó").replace(/&Uacute;/g, "Ú").replace(/&ntilde;/g, "ñ").replace(/&Ntilde;/g, "Ñ");
+
+  return resp;
+}
