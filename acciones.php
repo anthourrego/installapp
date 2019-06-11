@@ -179,7 +179,7 @@
     $db->conectar();
     $resp = 0;
 
-    $validar_nombre = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre", array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreApp'])));
+    $validar_nombre = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre ANd app_tipo = 1", array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreApp'])));
 
     if ($validar_nombre['cantidad_registros'] == 0) {
       //Obtenemos la extension de la imagen
@@ -346,7 +346,7 @@
     $nombreSinEspaciosAnt = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreAppAnt'])); 
 
     //Validamos si el nombre del apk ya se encuentra registrado para no remplazarlo
-    $validarNombreApk = $db->consulta("SELECT * FROM apps WHERE app_id <> :app_id AND app_nombre = :app_nombre", array(":app_id" => $_REQUEST['idAppMod'], ":app_nombre" => $_REQUEST['nombreAppMod']));
+    $validarNombreApk = $db->consulta("SELECT * FROM apps WHERE app_id <> :app_id AND app_nombre = :app_nombre AND app_tipo = 1", array(":app_id" => $_REQUEST['idAppMod'], ":app_nombre" => $_REQUEST['nombreAppMod']));
     
     if ($validarNombreApk['cantidad_registros'] == 0) {
       //Sube imagen y apk
@@ -541,6 +541,187 @@
     $db->desconectar();
 
     return json_encode($resp);
+  }
+
+  function formAgregarSoftware(){
+    $db = new Bd();
+    $db->conectar();
+    $resp = 1;
+    //Validamos que el nombre no se encuentre en uso
+    $validar = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre AND app_tipo = 2", array(":app_nombre" => $_REQUEST['nombreSoftware']));
+
+    if ($validar['cantidad_registros'] == 0) {
+      //Obtenemos la extension de la imagen
+      $infoImg = new SplFileInfo($_FILES['imgSoftware']['name']);
+      $extensionImg = $infoImg->getExtension();
+      $nombreSoftwareSinEspacios = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreSoftware']));
+      
+      //Validamos que tipo de imagen enviaron
+      if ($_FILES['imgSoftware']['type'] == "image/jpeg" || $_FILES['imgSoftware']['type'] == "image/jpg" || $_FILES['imgSoftware']['type'] == "image/png") {
+        
+        $directorio = "almacenamiento/software/" . $nombreSoftwareSinEspacios;
+
+        //Validamos si la ruta destino existe si no la creamos
+        if (!file_exists($directorio)) {
+          // Para crear una estructura anidada se debe especificar
+          // el parámetro $recursive en mkdir().
+          if(!mkdir($directorio, 0777, true)) {
+            die('Fallo al crear las carpetas origen...');
+          }
+        }
+
+        //Abrimos el directorio de destino
+        $dir=opendir($directorio);
+        //Indicamos la ruta de destino, así como el nombre del archivo
+        $target_pathImg = $directorio. '/' . $nombreSoftwareSinEspacios . "." . $extensionImg;
+
+        //Movemos y validamos que el archivo se haya cargado correctamente
+        //El primer campo es el origen y el segundo el destino
+        if (move_uploaded_file($_FILES['imgSoftware']['tmp_name'], $target_pathImg)) {
+          $db->sentencia("INSERT INTO apps(app_nombre, app_tipo, app_descripcion, app_ruta, app_imagen, app_fecha_creacion, app_activo) VALUES (:app_nombre, :app_tipo, :app_descripcion, :app_ruta, :app_imagen, :app_fecha_creacion, :app_activo)",
+                          array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreSoftware']), 
+                                ":app_tipo" => 2, 
+                                ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionApp']), 
+                                ":app_ruta" => $_REQUEST['ruta_software'], 
+                                ":app_imagen" => substr($target_pathImg, 15), 
+                                ":app_fecha_creacion" => date("Y-m-d H:i:s"), 
+                                ":app_activo" => 1)
+                        );
+          //traemos el id el app con el nombre
+          $id_app = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre AND app_tipo = 2", array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreSoftware'])));
+
+          if ($id_app['cantidad_registros'] == 1) {
+            if(@$_REQUEST['paisSoftware']){
+              foreach ($_REQUEST['paisSoftware'] as $pais) {
+                $db->sentencia("INSERT INTO apps_paises(fk_p, fk_app, ap_fecha_creacion, ap_activo) VALUES(:fk_p, :fk_app, :ap_fecha_creacion, :ap_activo)", 
+                              array(":fk_p" => $pais, 
+                                    ":fk_app" => $id_app[0]['app_id'], 
+                                    ":ap_fecha_creacion" => date("Y-m-d H:i:s"), 
+                                    ":ap_activo" => 1
+                                  ));
+              }
+            }
+
+            if (@$_REQUEST['refSoft']) {
+              foreach ($_REQUEST['refSoft'] as $ref) {
+                $db->sentencia("INSERT INTO apps_referencias(fk_ref, fk_app, ar_fecha_creacion, ar_activo) VALUES(:fk_ref, :fk_app, :ar_fecha_creacion, :ar_activo)",
+                                array(":fk_ref" => $ref, 
+                                      ":fk_app" => $id_app[0]['app_id'], 
+                                      ":ar_fecha_creacion" => date("Y-m-d H:i:s"), 
+                                      ":ar_activo"=> 1)
+                              );
+              }
+            }
+
+            $resp = 1; //Todo salio perfecto
+          }else{
+            $resp = "Error al guardar";
+          }
+        }else{
+          $resp = "No se ha subido la imagen";
+        }
+      }else{
+        $resp = "Tipo de imagen no permitida";
+      }
+    }else{
+      $resp = "Este nombre ya se encuentre en uso";
+    }
+
+    $db->desconectar();
+  
+    return json_encode($resp);
+  }
+
+  function listaSoftware(){
+    $db = new Bd();
+    $db->conectar();
+
+    $sql = $db->consulta("SELECT * FROM apps WHERE app_activo = 1 AND app_tipo = 2");
+
+    $db->desconectar();
+
+    return json_encode($sql);
+  }
+
+  function formModificarSoftware(){
+    $resp = 1;
+    $db = new Bd();
+    $db->conectar();
+
+    $nombreSinEspacios = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreSoftMod']));
+    $nombreSinEspaciosAnt = quitarAcentos(str_replace(" ", "_", $_REQUEST['nombreSoftAnt']));
+
+    //Validamos que el nombre no se encuentre en uso
+    $validar = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre AND app_id <> :app_id AND app_tipo = 2", array(":app_id" => $_REQUEST['idSoftMod'], ":app_nombre" => $_REQUEST['nombreSoftMod']));
+
+    if ($validar['cantidad_registros'] == 0) {
+      if(@$_REQUEST['imgSoftMod']){
+
+        //Obtenemos la extension del archivo para agregarla al a final
+        $info = new SplFileInfo($_FILES['imgSoftMod']['name']);
+        $extensionImg = $info->getExtension();
+  
+        if ($_FILES['imgSoftMod']['type'] == "image/jpeg" || $_FILES['imgSoftMod']['type'] == "image/jpg" || $_FILES['imgSoftMod']['type'] == "image/png") {
+          $directorio = "software/" . $nombreSinEspacios;
+          $directorioApk = $directorio . "/" . $nombreSinEspacios . ".apk";
+          unlink("almacenamiento/" . $_POST['imgSoftModAnt']); //Eliminamos la imagen de server
+          //Validamos si la ruta de destino existe, en caso de no existir la creamos
+          if(!file_exists("almacenamiento/" . $directorio)){
+            // Para crear una estructura anidada se debe especificar
+            rename("almacenamiento/" . $_POST['rutaApp'], "almacenamiento/software/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
+            rename("almacenamiento/software/" . $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
+          }
+  
+          //Abrimos el directorio de destino
+          $dir=opendir("almacenamiento/" . $directorio);
+          //Indicamos la ruta de destino, así como el nombre del archivo
+          $target_pathImg = $directorio . '/' . $nombreSinEspacios . "." . $extensionImg;
+  
+          //Movemos y validamos que el archivo se haya cargado correctamente
+          //El primer campo es el origen y el segundo el destino
+          if(move_uploaded_file($_FILES['imgSoftMod']['tmp_name'], "almacenamiento/" . $target_pathImg)) {
+            $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+                      array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreSoftMod']),
+                            ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionSoftMod']),
+                            ":app_ruta" => $_REQUEST['rutaSoft'],
+                            ":app_imagen" => $target_pathImg,
+                            ":app_id" => $_REQUEST['idSoftMod']
+                    ));
+          } else {
+            echo "Ha ocurrido un error al subir la imagen, por favor inténtelo de nuevo";
+          }
+          closedir($dir); //Cerramos el directorio de destino
+        }else{
+          echo "Error tipo de imagen";
+        }
+
+      }else{
+        //Traemos la extension de la imagen
+        $extensionImg = explode(".", $_REQUEST['imgSoftModAnt']);
+  
+        $directorio = "software/" . $nombreSinEspacios;
+        $directorioImg = $directorio . "/" . $nombreSinEspacios . "." . $extensionImg[1];
+        //Validamos si el directorio existe, si no existe los remplazamos 
+        if(!file_exists("almacenamiento/" . $directorio)){
+          //Se renombre las carpeta y los nombre de la app   
+          rename("almacenamiento/". $_POST['imgSoftModAnt'], "almacenamiento/software/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . "." . $extensionImg[1]);
+          rename("almacenamiento/software/". $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
+        }
+  
+        $db->sentencia("UPDATE apps SET app_nombre = :app_nombre, app_descripcion = :app_descripcion, app_ruta = :app_ruta, app_imagen = :app_imagen WHERE app_id = :app_id", 
+                        array(":app_nombre" => cadena_db_insertar($_REQUEST['nombreSoftMod']),
+                              ":app_descripcion" => cadena_db_insertar($_REQUEST['descripcionSoftMod']),
+                              ":app_ruta" => $_REQUEST['rutaSoft'],
+                              ":app_imagen" => $directorioImg,
+                              ":app_id" => $_REQUEST['idSoftMod']
+                      ));
+      }
+    }else{
+      $resp = "El nombre de app ya se encuentra en uso";
+    }
+
+    $db->desconectar();
+    return $resp;
   }
 
   if(@$_REQUEST['accion']){

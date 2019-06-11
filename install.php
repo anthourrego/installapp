@@ -80,6 +80,17 @@
         </button>
       </div>
       <hr>
+      <table class="table table-hover" id="tabla-software">
+        <thead>
+          <th>Imagen</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Acciones</th>
+        </thead>
+        <tbody id="tabla-contenido-software">
+        
+        </tbody>
+      </table>
     </div>
 
     <!-- Contenedor de Referencia -->
@@ -316,7 +327,7 @@
     </div>
   </div>
 
-   <!-- Modal Modificar Aplicación -->
+  <!-- Modal Modificar Aplicación -->
   <div class="modal fade bd-example-modal-lg" id="modalModificarAplicacion" tabindex="-1" role="dialog" aria-labelledby="modalModificaracionTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
@@ -452,6 +463,72 @@
     </div>
   </div>
 
+  <!-- Modal Modificar Software -->
+  <div class="modal fade bd-example-modal-lg" id="modalModificarSfotware" tabindex="-1" role="dialog" aria-labelledby="modalModificaracionTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Modificar Software</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form id="formModificarSoftware" method="post" autocomplete="off" enctype="multipart/form-data" action="acciones">
+          <input type="hidden" name="accion" value="formModificarSoftware" required>
+          <input type="hidden" name="idSoftMod" id="idSoftMod" required>
+          <input type="hidden" name="imgSoftModAnt" id="imgSoftModAnt" required>
+          <input type="hidden" name="nombreSoftAnt" id="nombreSoftAnt" required>
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="nombreSoft">Nombre <span class="text-danger">*</span></label>
+                <input name="nombreSoftMod" type="text" class="form-control" id="nombreSoftMod" required>
+              </div>
+              <div class="col-6">
+                <label for="">Logo</label>
+                <div class="custom-file">
+                  <input type="file" class="custom-file-input" id="imgSoftMod" name="imgSoftMod" accept=".jpg, .jpeg, .png">
+                  <label class="custom-file-label" id="labelimgSoftMod" for="imgSoftMod">Seleccionar Archivo</label>
+                  <small class="form-text text-muted">
+                    Solo se permiten archivos jpg, jpeg, png.
+                  </small>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="col-12">
+                <label for="rutaSoft">Ruta <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="rutaSoft" id="rutaSoft">
+              </div>
+            </div>
+            <div class="form-group mt-3">
+              <label>Descripcion <span class="text-danger">*</span></label>
+              <textarea name="descripcionSoftMod" class="form-control" id="descripcionSoftMod" rows="3" required></textarea>
+            </div>
+            <hr>
+            <p class="text-left">Países</p>
+            <div class="funkyradio form-row" id="inputRadioPaisEditSoft"></div>
+            <hr>
+            <p class="text-center">Referencias</p>
+            <div class="row">
+              <div class="col-12">
+                <input autofocus type="search" class="form-control" name="input-searchSoft2" id="input-searchSoft2" placeholder="Buscar referencias">
+                <br>
+              </div>
+            </div>
+            <div class="funkyradio form-row searchable-containerSoft2" id="inputRadioSoftMod"></div>
+          </div>
+          <div class="progress mt-2" style="height: 25px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"><div class="percent">0%</div></div>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Actualizar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </body>
 <script>
   $(function(){
@@ -461,6 +538,7 @@
     listaApps();
     radioPaises();
     inputReferencias();
+    listaSoftware();
 
     $(".btn-cat").on("click", function(){
       $(".btn-cat").removeClass("active");
@@ -869,11 +947,137 @@
             percent.html(percentVal);
           },
           complete: function(xhr) {
-            console.log(xhr);
             if (xhr.responseText == 1) {
               listaApps();
               $("#modalModificarAplicacion").modal("hide");
               $("#formModificarAplicacion")[0].reset();
+              alertify.success("Se han modificado correctamente");
+              bar.width('0%');
+              percent.html('0%');
+            }else{
+              //Remplazamos la comillas devueltas por el json
+              alertify.error(xhr.responseText.replace(/"/g, ''));
+              bar.width('0%');
+              percent.html('0%');
+            }
+          }
+        });  
+      }
+    });
+
+    //Formulario de Crear Apps
+    $("#formAgregarSoftware").validate({
+      debug: true,
+      rules: {
+        nombreSoftware: "required",
+        imgSoftware: "required",
+        ruta_software: "required",
+        descripcionApp: "required"
+      },
+      errorElement: 'span',
+      errorPlacement: function (error, element) {
+        error.addClass('invalid-feedback');
+        element.closest('.form-group').append(error);
+      },
+      highlight: function (element, errorClass, validClass) {
+        $(element).addClass('is-invalid');
+        $(element).removeClass('is-valid');
+      },
+      unhighlight: function (element, errorClass, validClass) {
+        $(element).removeClass('is-invalid');
+        $(element).addClass('is-valid');
+      }
+    });
+
+    $("#formAgregarSoftware").submit(function(event){
+      event.preventDefault();
+      if ($("#formAgregarSoftware").valid()) {
+        $("#formAgregarSoftware").ajaxSubmit({
+          //dataType: "json",
+          beforeSend: function() {
+            status.empty();
+            var percentVal = '0%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          uploadProgress: function(event, position, total, percentComplete) {
+            var percentVal = percentComplete + '%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          success: function() {
+            var percentVal = '100%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          complete: function(xhr) {
+            if (xhr.responseText == 1) {
+              listaSoftware();
+              $("#modalCrearSoftware").modal("hide");
+              $("#formAgregarSoftware")[0].reset();
+              alertify.success("Se han modificado correctamente");
+              bar.width('0%');
+              percent.html('0%');
+            }else{
+              //Remplazamos la comillas devueltas por el json
+              alertify.error(xhr.responseText.replace(/"/g, ''));
+              bar.width('0%');
+              percent.html('0%');
+            }
+          }
+        });  
+      }
+    });
+
+    //Formulario de Editar Apps
+    $("#formModificarSoftware").validate({
+      debug: true,
+      rules: {
+        nombreSoftMod: "required",
+        rutaSoft: "required",
+        descripcionSoftMod: "required"
+      },
+      errorElement: 'span',
+      errorPlacement: function (error, element) {
+        error.addClass('invalid-feedback');
+        element.closest('.form-group').append(error);
+      },
+      highlight: function (element, errorClass, validClass) {
+        $(element).addClass('is-invalid');
+        $(element).removeClass('is-valid');
+      },
+      unhighlight: function (element, errorClass, validClass) {
+        $(element).removeClass('is-invalid');
+        $(element).addClass('is-valid');
+      }
+    });
+
+    $("#formModificarSoftware").submit(function(event){
+      event.preventDefault();
+      if ($("#formModificarSoftware").valid()) {
+        $("#formModificarSoftware").ajaxSubmit({
+          //dataType: "json",
+          beforeSend: function() {
+            status.empty();
+            var percentVal = '0%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          uploadProgress: function(event, position, total, percentComplete) {
+            var percentVal = percentComplete + '%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          success: function() {
+            var percentVal = '100%';
+            bar.width(percentVal)
+            percent.html(percentVal);
+          },
+          complete: function(xhr) {
+            if (xhr.responseText == 1) {
+              listaSoftware();
+              $("#modalModificarSfotware").modal("hide");
+              $("#formModificarSoftware")[0].reset();
               alertify.success("Se han modificado correctamente");
               bar.width('0%');
               percent.html('0%');
@@ -1060,7 +1264,7 @@
               <td>${data[i].app_descripcion}</td>
               <td class="text-center align-middle">
                 <button class="btn btn-info" onClick="editarApp(${data[i].app_id})" data-toggle="tooltip" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-danger" onClick="inHabilitarApp(${data[i].app_id}, '${data[i].app_nombre}')" data-toggle="tooltip" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-danger" onClick="inHabilitarApp(${data[i].app_id}, '${data[i].app_nombre}', 1)" data-toggle="tooltip" title="Eliminar"><i class="fas fa-trash"></i></button>
                 <a class="btn btn-primary text-white" data-toggle="tooltip" title="Descargar" download="${data[i].app_nombre}.apk" href="almacenamiento/${data[i].app_ruta}"><i class="fas fa-download"></i></a>
               </td>
             </tr>
@@ -1137,7 +1341,7 @@
     });
   }
 
-  function inHabilitarApp(idApp, AppNombre){
+  function inHabilitarApp(idApp, AppNombre, tipo){
     $.ajax({
       url: "acciones",
       type: "POST",
@@ -1146,8 +1350,13 @@
       data: {accion: "inHabilitarApp", idApp: idApp},
       success: function(data){
         if (data === 1) {
-          listaApps();
-          alertify.success("La app " + AppNombre + " se ha eliminado.");
+          if (tipo == 1) {
+            listaApps();
+            alertify.success("La app " + AppNombre + " se ha eliminado.");
+          }else{
+            listaSoftware();
+            alertify.success("El software " + AppNombre + " se ha eliminado.");
+          }          
         }else{
           alertify.error(data);
         }
@@ -1237,6 +1446,137 @@
               var rex = new RegExp($(this).val(), 'i');
               $('.searchable-container2 .items2').hide();
               $('.searchable-container2 .items2').filter(function () {
+                return rex.test($(this).text());
+              }).show();
+            });
+          },
+          error: function(data){
+            console.log(data);
+            alertify.error("No se ha traido los check de referencias.");
+          }
+        });
+
+      },
+      error: function(){
+        alertify.error("Error al traer los datos");
+      }
+    });
+  }
+
+  function listaSoftware(){
+    $.ajax({
+      url: "acciones",
+      type: "POST",
+      dataType: "json",
+      cache: false,
+      data: {accion: "listaSoftware"},
+      success: function(data){
+        $('[data-toggle="tooltip"]').tooltip('hide');
+        //Destruimos la tabla y la limpiamos
+        $("#tabla-software").dataTable().fnDestroy();
+        $("#tabla-contenido-software").empty();
+        for (let i = 0; i < data.cantidad_registros; i++) {
+          $("#tabla-contenido-software").append(`
+            <tr>
+              <td class="align-middle"><img src="almacenamiento/${data[i].app_imagen}" width="200px"/></td>
+              <td>${data[i].app_nombre}</td>
+              <td>${data[i].app_descripcion}</td>
+              <td class="text-center align-middle">
+                <button class="btn btn-info" onClick="editarSoftware(${data[i].app_id})" data-toggle="tooltip" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger" onClick="inHabilitarApp(${data[i].app_id}, '${data[i].app_nombre}', 2)" data-toggle="tooltip" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <a class="btn btn-primary text-white" data-toggle="tooltip" title="Descargar" target="_blank" href="${data[i].app_ruta}"><i class="fas fa-download"></i></a>
+              </td>
+            </tr>
+          `);
+        }
+        $('[data-toggle="tooltip"]').tooltip();
+        definirdataTable("#tabla-software");
+      },
+      error: function(){
+        alertify.error("No ha podido cargar la lista de software");
+      }
+    });
+  }
+
+  function editarSoftware(app_id){
+    $.ajax({
+      url: "acciones",
+      type: "POST",
+      dataType:"json", 
+      cache: false,
+      data: {accion: "datosApp", idApp: app_id},
+      success: function(data){
+        $('#idSoftMod').val(data.app_id);
+        $('#imgSoftModAnt').val(data.app_imagen);
+        $('#rutaSoft').val(data.app_ruta);
+        $('#nombreSoftMod').val(acutes(data.app_nombre));
+        $('#descripcionSoftMod').val(acutes(data.app_descripcion));
+        $('#nombreSoftAnt').val(data.app_nombre);
+        $("#modalModificarSfotware").modal("show");
+
+        //Traemos los inputs de los paises
+        $.ajax({
+          url: "acciones",
+          type: "POST",
+          dataType: "json",
+          cache: false,
+          data: {accion: "checkPaisesEditar", idApp: app_id},
+          success: function(data){
+            $("#inputRadioPaisEditSoft").empty();
+            for (let i = 0; i < data.cantidad_registros; i++) {
+              if (data[i].check == 1) {
+                $("#inputRadioPaisEditSoft").append(`
+                  <div class='funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+                    <input class='plataforma' type='checkbox' checked name='paisEditSoft[]' id="EditSoft${data[i].p_nombre}" value='${data[i].p_id}'/>
+                    <label for='EditSoft${data[i].p_nombre}'>${data[i].p_nombre}</label>
+                  </div>
+                `);
+              }else{
+                $("#inputRadioPaisEditSoft").append(`
+                  <div class='funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+                    <input class='plataforma' type='checkbox' name='paisEditSoft[]' id="EditSoft${data[i].p_nombre}" value='${data[i].p_id}'/>
+                    <label for='EditSoft${data[i].p_nombre}'>${data[i].p_nombre}</label>
+                  </div>
+                `);
+              }
+            }
+          },
+          error: function(){
+            alertify.error("No se han traido los check.");
+          }
+        });
+
+        $.ajax({
+          url: "acciones",
+          type: "POST",
+          dataType: "json",
+          cache: false,
+          data: {accion: "checkReferenciasEditar", idApp: app_id},
+          success: function(data){
+            $("#inputRadioSoftMod").empty();
+            for (let i = 0; i < data.cantidad_registros; i++) {
+              if(data[i].check == 1){
+                $("#inputRadioSoftMod").append(`
+                  <div class='itemsSoft2 funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+                    <input class='plataforma' type='checkbox' checked name='refEditSoft[]' id="EditSoft${data[i].ref_nombre}" value='${data[i].ref_id}'/>
+                    <label for='EditSoft${data[i].ref_nombre}'>${data[i].ref_nombre}</label>
+                  </div>
+                `);
+              }else{
+                $("#inputRadioSoftMod").append(`
+                  <div class='itemsSoft2 funkyradio-primary col-12 col-sm-6 col-md-6 col-lg-4'>
+                    <input class='plataforma' type='checkbox' name='refEditSoft[]' id="EditSoft${data[i].ref_nombre}" value='${data[i].ref_id}'/>
+                    <label for='EditSoft${data[i].ref_nombre}'>${data[i].ref_nombre}</label>
+                  </div>
+                `);
+              }
+              
+            }
+
+            $('#input-searchSoft2').on('keyup', function () {
+              var rex = new RegExp($(this).val(), 'i');
+              $('.searchable-containerSoft2 .itemsSoft2').hide();
+              $('.searchable-containerSoft2 .itemsSoft2').filter(function () {
                 return rex.test($(this).text());
               }).show();
             });
