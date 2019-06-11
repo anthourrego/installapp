@@ -45,9 +45,9 @@
       }
     </style>
 </head>
-<body>
+<body style="overflow-x: hidden;">
   <div class="container">
-    <img class="w-100 mt-5 mb-4" src="img/banner1.png">
+    <img class="w-100 mt-5 mb-4" src="img/banner.png">
     <div class="input-group">
       <input type="text" id="referencia" class="form-control" placeholder="Escriba su referencia" aria-label="Escriba su referencia" aria-describedby="buscarApp" autofocus autocomplete="off" list="referencias">
       <datalist id="referencias"></datalist>
@@ -67,13 +67,12 @@
         cache: false,
         dataType: "json",
         success: function(data){
-
           $.ajax({
             url: "acciones",
             type: "POST",
             dataType: "json",
             cache: false,
-            data: {accion: "listaReferenciasOtras", code: data.countryCode},
+            data: {accion: "listaReferenciasInicio", code: data.countryCode},
             success: function(data){
               $("#referencias").empty();
               for (let i = 0; i < data.cantidad_registros; i++) {
@@ -121,7 +120,7 @@
                       url: 'acciones',
                       dataType: "json",
                       cache: false,
-                      data: {accion: "listaAppsReferenciaOtras", idRef: result, code: data.countryCode},
+                      data: {accion: "listaAppsReferencia", idRef: result, code: data.countryCode},
                       success: function(data){
                         console.log(data);
                         $("#Error").hide(500)
