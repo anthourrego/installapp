@@ -655,7 +655,7 @@
     $validar = $db->consulta("SELECT * FROM apps WHERE app_nombre = :app_nombre AND app_id <> :app_id AND app_tipo = 2", array(":app_id" => $_REQUEST['idSoftMod'], ":app_nombre" => $_REQUEST['nombreSoftMod']));
 
     if ($validar['cantidad_registros'] == 0) {
-      if(@$_REQUEST['imgSoftMod']){
+      if(@$_FILES['imgSoftMod']){
 
         //Obtenemos la extension del archivo para agregarla al a final
         $info = new SplFileInfo($_FILES['imgSoftMod']['name']);
@@ -668,7 +668,7 @@
           //Validamos si la ruta de destino existe, en caso de no existir la creamos
           if(!file_exists("almacenamiento/" . $directorio)){
             // Para crear una estructura anidada se debe especificar
-            rename("almacenamiento/" . $_POST['rutaApp'], "almacenamiento/software/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
+            //rename("almacenamiento/" . $_POST['rutaApp'], "almacenamiento/software/" . $nombreSinEspaciosAnt . "/" . $nombreSinEspacios . ".apk");
             rename("almacenamiento/software/" . $nombreSinEspaciosAnt, "almacenamiento/" . $directorio);
           }
   
@@ -721,48 +721,48 @@
     }
 
     //Validamos si la respuesta a cambiado, si cambia no aplicamos cambios a lo checkbox
-      if ($resp == 1) {
-        //Deshabilitamos todos los paises con el id de la app
-        $db->sentencia("UPDATE apps_paises SET ap_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idSoftMod']));  
-    
-        //Validamos si etsa seleccionar algunos paises
-        if (@$_REQUEST['paisEditSoft']) {
-          foreach (@$_REQUEST['paisEditSoft'] as $pais) {
-            $validar = $db->consulta("SELECT ap_id FROM apps_paises WHERE fk_p = :fk_p AND fk_app = :fk_app", array(":fk_p" => $pais, "fk_app" => $_REQUEST['idSoftMod']));
-            //Si hay coincidencia se cambia el estado si no se agrega el registro 
-            if ($validar['cantidad_registros'] == 1) {
-              $db->sentencia("UPDATE apps_paises SET ap_activo = 1 WHERE ap_id = :ap_id", array(":ap_id" => $validar[0]['ap_id']));
-            }else{
-              $db->sentencia("INSERT INTO apps_paises(fk_p, fk_app, ap_fecha_creacion, ap_activo) VALUES(:fk_p, :fk_app, :ap_fecha_creacion, 1)",
-                            array(":fk_p" => $pais, 
-                                  ":fk_app" => $_REQUEST['idSoftMod'], 
-                                  ":ap_fecha_creacion" => date("Y-m-d H:i:s")
-                            ));
-            } 
-          }
-        }
-    
-        //Cambiamos a 0 todas la refencias
-        $db->sentencia("UPDATE apps_referencias SET ar_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idSoftMod']));
-    
-        //Validamos si selecionaron alguna referencia
-        if (@$_REQUEST['refEditSoft']) {
-          foreach ($_REQUEST['refEditSoft'] as $ref) {
-            $validar = $db->consulta("SELECT ar_id FROM apps_referencias WHERE fk_ref = :fk_ref AND fk_app = :fk_app", array(":fk_ref" => $ref, ":fk_app" => $_REQUEST['idSoftMod']));
-            
-            if ($validar['cantidad_registros'] == 1) {
-              $db->sentencia("UPDATE apps_referencias SET ar_activo = 1 WHERE ar_id = :ar_id", array(":ar_id" => $validar[0]['ar_id']));
-            }else{
-              $db->sentencia("INSERT INTO apps_referencias(fk_ref, fk_app, ar_fecha_creacion, ar_activo) VALUES(:fk_ref, :fk_app, :ar_fecha_creacion, 1)", 
-                            array(":fk_ref" => $ref, 
-                                  ":fk_app" => $_REQUEST['idSoftMod'], 
-                                  ":ar_fecha_creacion" => date("Y-m-d H:i:s")
-                            ));
-            }
-    
-          }
+    if ($resp == 1) {
+      //Deshabilitamos todos los paises con el id de la app
+      $db->sentencia("UPDATE apps_paises SET ap_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idSoftMod']));  
+  
+      //Validamos si etsa seleccionar algunos paises
+      if (@$_REQUEST['paisEditSoft']) {
+        foreach (@$_REQUEST['paisEditSoft'] as $pais) {
+          $validar = $db->consulta("SELECT ap_id FROM apps_paises WHERE fk_p = :fk_p AND fk_app = :fk_app", array(":fk_p" => $pais, "fk_app" => $_REQUEST['idSoftMod']));
+          //Si hay coincidencia se cambia el estado si no se agrega el registro 
+          if ($validar['cantidad_registros'] == 1) {
+            $db->sentencia("UPDATE apps_paises SET ap_activo = 1 WHERE ap_id = :ap_id", array(":ap_id" => $validar[0]['ap_id']));
+          }else{
+            $db->sentencia("INSERT INTO apps_paises(fk_p, fk_app, ap_fecha_creacion, ap_activo) VALUES(:fk_p, :fk_app, :ap_fecha_creacion, 1)",
+                          array(":fk_p" => $pais, 
+                                ":fk_app" => $_REQUEST['idSoftMod'], 
+                                ":ap_fecha_creacion" => date("Y-m-d H:i:s")
+                          ));
+          } 
         }
       }
+  
+      //Cambiamos a 0 todas la refencias
+      $db->sentencia("UPDATE apps_referencias SET ar_activo = 0 WHERE fk_app = :fk_app", array(":fk_app" => $_REQUEST['idSoftMod']));
+  
+      //Validamos si selecionaron alguna referencia
+      if (@$_REQUEST['refEditSoft']) {
+        foreach ($_REQUEST['refEditSoft'] as $ref) {
+          $validar = $db->consulta("SELECT ar_id FROM apps_referencias WHERE fk_ref = :fk_ref AND fk_app = :fk_app", array(":fk_ref" => $ref, ":fk_app" => $_REQUEST['idSoftMod']));
+          
+          if ($validar['cantidad_registros'] == 1) {
+            $db->sentencia("UPDATE apps_referencias SET ar_activo = 1 WHERE ar_id = :ar_id", array(":ar_id" => $validar[0]['ar_id']));
+          }else{
+            $db->sentencia("INSERT INTO apps_referencias(fk_ref, fk_app, ar_fecha_creacion, ar_activo) VALUES(:fk_ref, :fk_app, :ar_fecha_creacion, 1)", 
+                          array(":fk_ref" => $ref, 
+                                ":fk_app" => $_REQUEST['idSoftMod'], 
+                                ":ar_fecha_creacion" => date("Y-m-d H:i:s")
+                          ));
+          }
+  
+        }
+      }
+    }
 
     $db->desconectar();
     return $resp;
@@ -799,7 +799,7 @@
     $db = new Bd();
     $db->conectar();
 
-    $sql = $db->consulta("SELECT * FROM apps AS a INNER JOIN apps_paises AS ap ON a.app_id = ap.fk_app INNER JOIN paises AS p ON p.p_id = ap.fk_p INNER JOIN apps_referencias AS ar ON ar.fk_app = a.app_id INNER JOIN referencias AS ref ON ref.ref_id = ar.fk_ref WHERE p.p_code = :p_code AND a.app_activo = 1 AND ar.ar_activo = 1 AND ar.fk_ref = :fk_ref AND ref.fk_marca = 1 ORDER BY a.app_tipo ASC", array("fk_ref" => $_REQUEST['idRef'],":p_code" => $_REQUEST['code']));
+    $sql = $db->consulta("SELECT * FROM apps AS a INNER JOIN apps_paises AS ap ON a.app_id = ap.fk_app INNER JOIN paises AS p ON p.p_id = ap.fk_p INNER JOIN apps_referencias AS ar ON ar.fk_app = a.app_id INNER JOIN referencias AS ref ON ref.ref_id = ar.fk_ref WHERE p.p_code = :p_code AND ap_activo = 1 AND a.app_activo = 1 AND ar.ar_activo = 1 AND ar.fk_ref = :fk_ref AND ref.fk_marca = 1 ORDER BY a.app_tipo ASC", array("fk_ref" => $_REQUEST['idRef'],":p_code" => $_REQUEST['code']));
 
     $db->desconectar();
 
@@ -821,7 +821,7 @@
     $db = new Bd();
     $db->conectar();
 
-    $sql = $db->consulta("SELECT * FROM apps AS a INNER JOIN apps_paises AS ap ON a.app_id = ap.fk_app INNER JOIN paises AS p ON p.p_id = ap.fk_p INNER JOIN apps_referencias AS ar ON ar.fk_app = a.app_id INNER JOIN referencias AS ref ON ref.ref_id = ar.fk_ref WHERE p.p_code = :p_code AND a.app_activo = 1 AND ar.ar_activo = 1 AND ar.fk_ref = :fk_ref AND ref.fk_marca <> 1 ORDER BY a.app_tipo ASC", array("fk_ref" => $_REQUEST['idRef'],":p_code" => $_REQUEST['code']));
+    $sql = $db->consulta("SELECT * FROM apps AS a INNER JOIN apps_paises AS ap ON a.app_id = ap.fk_app INNER JOIN paises AS p ON p.p_id = ap.fk_p INNER JOIN apps_referencias AS ar ON ar.fk_app = a.app_id INNER JOIN referencias AS ref ON ref.ref_id = ar.fk_ref WHERE p.p_code = :p_code AND ap_activo = 1 AND a.app_activo = 1 AND ar.ar_activo = 1 AND ar.fk_ref = :fk_ref AND ref.fk_marca <> 1 ORDER BY a.app_tipo ASC", array("fk_ref" => $_REQUEST['idRef'],":p_code" => $_REQUEST['code']));
 
     $db->desconectar();
 
